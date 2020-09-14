@@ -50,7 +50,7 @@ class Gillespie():
         elif nreactions < 0:
             raise ValueError("The reaction limit could not be negative!")
 
-        for x in range(nreactions):
+        for _ in range(nreactions):
             self.run_single_step()
     
     def run_single_step(self):
