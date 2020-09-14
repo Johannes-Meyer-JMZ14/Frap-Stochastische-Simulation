@@ -1,5 +1,5 @@
-from context import *
-from Gillespie.Gillespie import *
+from Gillespie import Gillespie
+from pandas import DataFrame
 
 import pytest
 

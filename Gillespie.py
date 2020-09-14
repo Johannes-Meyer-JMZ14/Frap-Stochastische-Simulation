@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from pandas import DataFrame
-import copy
+from copy import deepcopy
 
 # Comments partially cited from "Exact Stochastic Simulation of Coupled Chemical Reactions" by Daniel T. Gillespie in 1977
 
@@ -16,7 +16,7 @@ class Gillespie():
         # stochastic rate constants
         self.rConstants = rConstants
         # initial amounts of molekules in the system
-        self.quantities = copy.deepcopy(quantities)
+        self.quantities = deepcopy(quantities)
         # time variables for plotting and terminating
         self.times = [0.0]
         self.tmax = 0.0
