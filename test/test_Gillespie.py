@@ -1,3 +1,4 @@
+from context import *
 from Gillespie import Gillespie
 from pandas import DataFrame
 
