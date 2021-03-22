@@ -135,5 +135,7 @@ temp_*
 # LaTeX files
 *.aux
 main.out
-main.pdf
 main.toc
+main.bbl
+main.blg
+main.synctex.gz
