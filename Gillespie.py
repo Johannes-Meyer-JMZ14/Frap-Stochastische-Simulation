@@ -389,76 +389,133 @@ def make_output_signal(list_gillespies, output_species_names):
 
     return output_signal
 
-def get_trimming_time(list_gillespies, window_length=10, step_width=None, vct=0.05):
-    """Scans the Gillespie runs for their variances via shifting window and returns the time when variance change threshold is reached."""
+def divide_time_axis_equidistantly(list_of_times):
+    """Divides a list of numbers pairwise in the middle. Returns a list of tuples of sections."""
+    # only a list for input
+    if not isinstance(list_of_times, list):
+        raise ValueError('The input list has to be a list of times.')
+    # no empty list
+    elif list_of_times == []:
+        raise ValueError('The input list must not be empty.')
+    # only lists with two and more items
+    elif len(list_of_times) == 1:
+        raise ValueError('The input list has to contain more than one entry.')
+    # list items shall be of type integer or float
+    for list_item in list_of_times:
+        if not (isinstance(list_item, int) or isinstance(list_item, float)):
+            raise ValueError('The list items shall be of type integer or float.')
+    
+    time_ranges = []
+    for i, time in enumerate(list_of_times):
+        # if last item in list, there is only one intermediate
+        if i == len(list_of_times)-1:
+            time_ranges.append((old_intermediate, time))
+            break
+        # calculate the next intermediate
+        intermediate = (list_of_times[i+1]+time)/2
+        # if it is the first item, there is only one intermediate
+        if i == 0:
+            time_ranges.append((time, intermediate))
+        # all other time ranges range from intermediate to intermediate
+        else:
+            time_ranges.append((old_intermediate, intermediate))
+        old_intermediate = intermediate
+    return time_ranges
 
-    if vct > 1 or vct < 0:
-        raise ValueError("Variance change threshold 'vct' has to be a float from zero to one.")
-    if not isinstance(vct, float):
-        raise ValueError("Variance change threshold 'vct' has to be a float from zero to one.")
+# TODO: Simulationsdaten Messdatenbereichen zuordnen
+def placeholder(time_ranges, gillespies):
+    temp_list = []
+    for i, gilles in enumerate(gillespies):
+        temp_list.append([id(gilles)])
+        for j, time_range in enumerate(time_ranges):
+            temp2 = []
+            for time in gilles.times:
+                if (time >= time_range[0] and time < time_range[1]) or (time < time_range[0] and time >= time_range[1]):
+                    temp2[j].append(time)
+            # das ist hier totaler Quatsch, ich will doch keine Zeitpunkte aufsummieren.
+            # temp_list[i].append(sum(temp2))
+            # Vielleicht sowas?
+            temp_list[i].append(temp2)
 
-    def make_time_quantity_tuples(list_times, list_quantities):
-        """Build a list of (time, quantity) tuples."""
+    arithmetic_means = DataFrame({}, index=time_ranges)
 
-        if not len(list_times) == len(list_quantities):
-            raise RuntimeError("The amount of times does not equal the amount of quantity data.")
+    arithmetic_means.append()
+# TODO: Mittelwert der Simulationsdaten im Messbereich bestimmen
+# TODO: Fortlaufende Summen für Abweichung im Schnitt und Abweichung absolut anlegen, um Bwertung zu machen
+def evaluation():
+    """Evaluates how much a simulations differs from measured data."""
+    pass
 
-        tuples = []
+# def get_trimming_time(list_gillespies, window_length=10, step_width=None, vct=0.05):
+    #"""Scans the Gillespie runs for their variances via shifting window and returns the time when variance change threshold is reached."""
+
+    #if vct > 1 or vct < 0:
+    #    raise ValueError("Variance change threshold 'vct' has to be a float from zero to one.")
+    #if not isinstance(vct, float):
+    #    raise ValueError("Variance change threshold 'vct' has to be a float from zero to one.")
+
+    #def make_time_quantity_tuples(list_times, list_quantities):
+    #    """Build a list of (time, quantity) tuples."""
+
+    #    if not len(list_times) == len(list_quantities):
+    #        raise RuntimeError("The amount of times does not equal the amount of quantity data.")
+
+    #    tuples = []
         # for all times create a (time, quantity) tuple
-        for i in range(len(list_times)):
-            time_quan = (list_times[i], list_quantities[i])
-            tuples.append(time_quan)
+    #    for i in range(len(list_times)):
+    #        time_quan = (list_times[i], list_quantities[i])
+    #        tuples.append(time_quan)
 
-        return tuples
+    #    return tuples
 
-    def get_snipping_time(list_tuple_data, window_size=10, step=None, var_cutoff=0.5):
-        """Return the time where steady state begins approximately."""
+    #def get_snipping_time(list_tuple_data, window_size=10, step=None, var_cutoff=0.5):
+    #    """Return the time where steady state begins approximately."""
 
-        if step == None:
-            step = int(window_size/10)
-            if step < 1:
-                step = 1
-        if not isinstance(step, int):
-            raise ValueError("Parameter 'step' has to be an integer, not" + type(step))
+    #    if step == None:
+    #        step = int(window_size/10)
+    #        if step < 1:
+    #            step = 1
+    #    if not isinstance(step, int):
+    #        raise ValueError("Parameter 'step' has to be an integer, not" + type(step))
 
         # initialise with highest possible variance and lowest possible position
-        current_variance = np.inf
-        snipping_position = 0
+    #    current_variance = np.inf
+    #    snipping_position = 0
         # window shifting over all data to determine the local variance
-        for i in range(0, len(list_tuple_data) - window_size + 1, step):
-            current_window = list_tuple_data[i:i+window_size]
+    #    for i in range(0, len(list_tuple_data) - window_size + 1, step):
+    #        current_window = list_tuple_data[i:i+window_size]
             # variance over analyte quantity
-            new_variance = np.var([date[1] for date in current_window])
+    #        new_variance = np.var([date[1] for date in current_window])
             # if variance change between the windows is less than 2 percent
-            if abs(new_variance - current_variance) < var_cutoff:  # 2 percent is an arbitrary value yet
-                snipping_position = i
-                break
+    #        if abs(new_variance - current_variance) < var_cutoff:  # 2 percent is an arbitrary value yet
+    #            snipping_position = i
+    #            break
             
-            current_variance = new_variance
+    #        current_variance = new_variance
 
         # return the time stamp from which the variance doesn't change dramatically
-        return list_tuple_data[snipping_position][0]
+    #    return list_tuple_data[snipping_position][0]
 
     # create (time, quantity) tuples
-    all_tuples = []
-    possible_snipping_times = []
-    for gillespie in list_gillespies:
-        snipping_times_per_run = []
-        tuples_per_run = {}
-        for species in gillespie.quantities.keys():
-            time_quantity_tuples = make_time_quantity_tuples(gillespie.times, gillespie.quantities[species])
-            time_quantity_tuples.sort()
-            tuples_per_run.update({species: time_quantity_tuples})
+    #all_tuples = []
+    #possible_snipping_times = []
+    #for gillespie in list_gillespies:
+    #    snipping_times_per_run = []
+    #    tuples_per_run = {}
+    #    for species in gillespie.quantities.keys():
+    #        time_quantity_tuples = make_time_quantity_tuples(gillespie.times, gillespie.quantities[species])
+    #        time_quantity_tuples.sort()
+    #        tuples_per_run.update({species: time_quantity_tuples})
             # sort the tuples according to their time and decide where to place the begin of steady state
-            snipping_time_per_species = get_snipping_time(time_quantity_tuples, var_cutoff=vct, window_size=window_length, step=step_width)
-            snipping_times_per_run.append(snipping_time_per_species)
+    #        snipping_time_per_species = get_snipping_time(time_quantity_tuples, var_cutoff=vct, window_size=window_length, step=step_width)
+    #        snipping_times_per_run.append(snipping_time_per_species)
         # calculate for each Gillespie run its own mean settling time
-        possible_snipping_times.append(np.mean(snipping_times_per_run))
-        all_tuples.append(tuples_per_run)
+    #    possible_snipping_times.append(np.mean(snipping_times_per_run))
+    #    all_tuples.append(tuples_per_run)
     # from all runs take the latest settling time to trim the data
-    settling_time = np.max(possible_snipping_times)
+    #settling_time = np.max(possible_snipping_times)
 
-    return settling_time
+    #return settling_time
 
 def calc_mean_quantity(inp):
     return np.mean([np.mean(date) for date in inp])
@@ -469,14 +526,7 @@ def calc_mean_variance(inp):
 def calc_mean_standard_deviation(inp):
     return np.mean([np.std(date) for date in inp])
 
-def calc_SNR(signal_mean, background_mean):
-
-    if not isinstance(signal_mean, (int, float)):
-        raise TypeError("Signal mean has to be a number.")
-    if not isinstance(background_mean, (int, float)):
-        raise TypeError("Background mean has to be a number.")
-    return signal_mean/background_mean
-
+# TODO: Variationskoeffizient noch sinnvoll? Wenn ja, schreiben.
 def calc_Variationskoeffizient():
     pass
 
