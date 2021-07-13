@@ -422,25 +422,38 @@ def divide_time_axis_equidistantly(list_of_times):
         old_intermediate = intermediate
     return time_ranges
 
-# TODO: Simulationsdaten Messdatenbereichen zuordnen
-def placeholder(time_ranges, gillespies):
-    temp_list = []
+# TODO: Tests schreiben
+def assign_simulation_times_to_time_ranges(time_ranges, gillespies):
+    """Takes a list of gillespie simulations and a list of time intervals and matches the time stamps of each gillespie simulation to an interval."""
+    rows = []
+    times_for_all_gillespie_objects = []
+    # for each gillespie object
     for i, gilles in enumerate(gillespies):
-        temp_list.append([id(gilles)])
-        for j, time_range in enumerate(time_ranges):
-            temp2 = []
+        rows.append(gilles)
+        times_for_all_gillespie_objects.append([])
+        # for each interval in the given list
+        for time_range in time_ranges:
+            times_in_time_range = []
             for time in gilles.times:
+                # check if a time from the gillespie simulation matches the current interval
                 if (time >= time_range[0] and time < time_range[1]) or (time < time_range[0] and time >= time_range[1]):
-                    temp2[j].append(time)
-            # das ist hier totaler Quatsch, ich will doch keine Zeitpunkte aufsummieren.
-            # temp_list[i].append(sum(temp2))
-            # Vielleicht sowas?
-            temp_list[i].append(temp2)
+                    times_in_time_range.append(time)
+            # add all matched times to the current gillespie objects list
+            times_for_all_gillespie_objects[i].append(times_in_time_range)
 
-    arithmetic_means = DataFrame({}, index=time_ranges)
-
-    arithmetic_means.append()
+    all_times = DataFrame(times_for_all_gillespie_objects, columns=time_ranges, index=rows)
+    return all_times
 # TODO: Mittelwert der Simulationsdaten im Messbereich bestimmen
+# TODO: Tests schreiben
+def arithmetic_means(dataframe):
+    # TODO: Beschreibung ausdenken und einfügen
+    """Beschreibung..."""
+    ret = DataFrame(np.zeros(dataframe.shape), columns=dataframe.columns, index=dataframe.index)
+    for col, ind in (dataframe.columns, dataframe.index):
+        mean = np.mean(dataframe[ind][col])
+        ret[ind][col]=mean
+    
+    return ret    
 # TODO: Fortlaufende Summen für Abweichung im Schnitt und Abweichung absolut anlegen, um Bwertung zu machen
 def evaluation():
     """Evaluates how much a simulations differs from measured data."""
