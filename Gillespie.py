@@ -450,14 +450,23 @@ def arithmetic_means(dataframe):
     """Beschreibung..."""
     ret = DataFrame(np.zeros(dataframe.shape), columns=dataframe.columns, index=dataframe.index)
     for col, ind in (dataframe.columns, dataframe.index):
-        mean = np.mean(dataframe[ind][col])
-        ret[ind][col]=mean
+        # each entry of 'dataframe' should contain a list of values
+        # calculate the arithmetic mean and save it to the corresponding location in 'ret'
+        mean = np.mean(dataframe[col][ind])
+        ret[col][ind]=mean
     
-    return ret    
-# TODO: Fortlaufende Summen für Abweichung im Schnitt und Abweichung absolut anlegen, um Bwertung zu machen
-def evaluation():
+    return ret
+# TODO: Tests schreiben
+def evaluation(df_measured, df_simulated_means):
     """Evaluates how much a simulations differs from measured data."""
-    pass
+    iterated_sum = 0
+    absolutes_sum = 0
+    for col, ind in (df_measured.columns, df_measured.index):
+        difference = df_measured[col][ind]-df_simulated_means[col][ind]
+        iterated_sum += difference
+        absolutes_sum += abs(difference)
+    
+    return (iterated_sum, absolutes_sum)
 
 # def get_trimming_time(list_gillespies, window_length=10, step_width=None, vct=0.05):
     #"""Scans the Gillespie runs for their variances via shifting window and returns the time when variance change threshold is reached."""
