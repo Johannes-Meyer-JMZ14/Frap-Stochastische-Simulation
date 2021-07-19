@@ -11,5 +11,5 @@ def get_stochastical_rate_constant(d1, d2, T, m1, m2):
 def get_stochastical_rate_constants(reactions, L):
     c = []
     for reaction in reactions:
-        c.append(get_stochastical_rate_constant(diameter1, diameter2, temperature, mass1, mass2))
+        c.append(get_stochastical_rate_constant(diameter1=1, diameter2=1, temperature=1, mass1=2, mass2=2))
     return c
