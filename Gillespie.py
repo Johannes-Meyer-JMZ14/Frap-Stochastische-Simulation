@@ -21,8 +21,8 @@ class Gillespie():
         self.times = [0.0]
         self.tmax = 0.0
         # internal variables for the gillespie algorithm
-        self.h = dict()
-        self.a = dict()
+        self.h = {reaction:None for reaction in self.L}
+        self.a = {reaction:None for reaction in self.L}
         self.a0 = 0.0
 
     def run_time_sec(self, tmax):
@@ -58,7 +58,7 @@ class Gillespie():
 
         # Gillespie Step 1
         # Calculate and store the M quantities a1 = h1c1,..., aM = hMcM for the currnt molecular population numbers, where h_nu is that function of X1,...,XN defined in (15).
-        for reaction in self.L.keys():
+        for reaction in self.L.keys():  # maybe "in self.L" would be slightly faster, but is less readable
             self.h[reaction] = self.calc_h(reaction)
             self.a[reaction] = self.calc_a(reaction)
         self.a0 = self.calc_a0()
@@ -86,7 +86,7 @@ class Gillespie():
     def get_reactants(self, reaction):
         """Returns dict = {reactant: quantity}. The reactants (and their quantity) taking part in the specified reaction."""
 
-        reactants = dict()
+        reactants = {key:None for key in self.L.index}
         # for any analyte in reaction
         for row_key in self.L[reaction].keys():
             # get number and type of analytes used in the reaction
@@ -137,9 +137,9 @@ class Gillespie():
         # reaction must be a string, key of dict and must not be referencing to a negative value
         if not isinstance(reaction, str):
             raise ValueError("reaction parameter for calc_a() has to be a string.")
-        if reaction not in self.rConstants.keys():
+        if reaction not in self.rConstants:
             raise KeyError("reaction parameter not in rConstants.")
-        if reaction not in self.h.keys():
+        if reaction not in self.h:
             raise KeyError("reaction parameter not in dictionary h.")
         if self.rConstants[reaction] < 0:
             raise ValueError("Reaction constant for" + reaction + "must not be negative.")
@@ -243,7 +243,7 @@ class Gillespie():
         if not reaction in self.L.keys():
             raise KeyError("Reaction should be a key for stoichiometric matrices, respectively the name of the corresponding reaction.")
         # add the changed number of analytes, due to reaction mu, to quantities
-        for species in self.quantities.keys():
+        for species in self.quantities:
             # add the value from N to the current number of molecules of one species
             new_quantity = self.quantities[species][-1] + self.N[reaction][species]
             self.quantities[species].append(new_quantity)
@@ -467,6 +467,13 @@ def evaluation(df_measured, df_simulated_means):
         absolutes_sum += abs(difference)
     
     return (iterated_sum, absolutes_sum)
+
+def fitness(parameters):
+    trajectory = simulate(parameters)  # Gillespie.run_n_reactions()
+    # Mittelwerte bilden
+    # Addieren und Normieren (auf feste Anzahl in ROI bspw. 200)
+    quality_of_fitness = evaluation()
+    return quality_of_fitness
 
 # def get_trimming_time(list_gillespies, window_length=10, step_width=None, vct=0.05):
     #"""Scans the Gillespie runs for their variances via shifting window and returns the time when variance change threshold is reached."""
