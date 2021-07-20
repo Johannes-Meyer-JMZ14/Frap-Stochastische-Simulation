@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pandas import DataFrame
 from copy import deepcopy
+from time import process_time
 
 # Comments partially cited from "Exact Stochastic Simulation of Coupled Chemical Reactions" by Daniel T. Gillespie in 1977
 
@@ -24,6 +25,12 @@ class Gillespie():
         self.h = {reaction:None for reaction in self.L}
         self.a = {reaction:None for reaction in self.L}
         self.a0 = 0.0
+        # get all reactants that are actually involved in reaction "reaction"
+        self.reactants = {reaction:self.get_reactants(reaction) for reaction in self.L}  # type is dictionary of dictionaries 
+
+        self.h_counter = [0,[]]
+        self.a_counter = [0,[]]
+        self.other_counter = {"a0":[0,[]],"next_reaction":[0,[]],"adv_time":[0,[]],"mol_change":[0,[]]}
 
     def run_time_sec(self, tmax):
         """Run single Gillespie steps until tmax is reached."""
@@ -59,20 +66,44 @@ class Gillespie():
         # Gillespie Step 1
         # Calculate and store the M quantities a1 = h1c1,..., aM = hMcM for the currnt molecular population numbers, where h_nu is that function of X1,...,XN defined in (15).
         for reaction in self.L.keys():  # maybe "in self.L" would be slightly faster, but is less readable
+            t_h = process_time()
             self.h[reaction] = self.calc_h(reaction)
-            self.a[reaction] = self.calc_a(reaction)
-        self.a0 = self.calc_a0()
+            elapsed_time_h = process_time() - t_h
+            self.h_counter[0] += 1
+            self.h_counter[1].append(elapsed_time_h)
 
+            t_a = process_time()
+            self.a[reaction] = self.calc_a(reaction)
+            elapsed_time_a = process_time() - t_a
+            self.a_counter[0] += 1
+            self.a_counter[1].append(elapsed_time_a)
+        t = process_time()
+        self.a0 = self.calc_a0()
+        elapsed_time = process_time() - t
+        self.other_counter["a0"][0] += 1
+        self.other_counter["a0"][1].append(elapsed_time)
         # Gillespie Step 2
         # Generate two random numbers r1 and r2 using the unit-interval uniform random number generator, and calculate tau and mu according to (21a) and (21b).
         # Gillespie Step 3
         # Using the tau and mu values obtained in step 2, increase t by tau and adjust the molecular population levels to reflect the occurrence of one R_mu reaction.
         # pick a reaction random
+        t = process_time()
         next_reaction = self.choose_next_reaction()
+        elapsed_time = process_time() - t
+        self.other_counter["next_reaction"][0] += 1
+        self.other_counter["next_reaction"][1].append(elapsed_time)
         # advance time random
+        t = process_time()
         self.advance_time()
+        elapsed_time = process_time() - t
+        self.other_counter["adv_time"][0] += 1
+        self.other_counter["adv_time"][1].append(elapsed_time)
         # alter molecule amounts
+        t = process_time()
         self.trace_molecule_changes(next_reaction)
+        elapsed_time = process_time() - t
+        self.other_counter["mol_change"][0] += 1
+        self.other_counter["mol_change"][1].append(elapsed_time)
 
     def binomial_coefficient(self, n, k):
 
@@ -86,18 +117,18 @@ class Gillespie():
     def get_reactants(self, reaction):
         """Returns dict = {reactant: quantity}. The reactants (and their quantity) taking part in the specified reaction."""
 
-        reactants = {key:None for key in self.L.index}
         # for any analyte in reaction
-        for row_key in self.L[reaction].keys():
+        for row in self.L.index:
             # get number and type of analytes used in the reaction
-            entry = self.L[reaction][row_key]
+            entry = self.L[reaction][row]
             if not isinstance(entry, np.int64):
                 raise ValueError("Values of stoichiometric matrices have to be int64.")
             if entry < 0:
                 raise ValueError("Values of stoichiometric matrix L must not be negative.")
-            # if some analyte will be used
-            if entry > 0:
-                reactants[row_key] = entry
+        
+        # if some analyte will be used
+        reactants = {analyte:self.L[reaction][analyte] for analyte in self.L.index if self.L[reaction][analyte]>0}
+
         return reactants
 
     def calc_h(self, reaction):
@@ -112,13 +143,10 @@ class Gillespie():
                 raise KeyError("Reaction not found, key is of type " + str(type(reaction)) + ".")
             raise KeyError("Reaction not found.")
         
-        # get all reactants taking part in reaction "reaction"
-        reactants = self.get_reactants(reaction)  # type is dictionary
-        
-        ret = 1  # number of possible molecule combinations leading to a reaction
-        for species in reactants:
+        ret = 1  # there is exactly one option to draw nothing out of something
+        for species in self.reactants[reaction]:
             n = self.quantities[species][-1]  # current amount of molecules of this species, if zero "ret" will be zero
-            k = reactants[species]  # number of molecules needed to do the reaction
+            k = self.reactants[reaction][species]  # number of molecules needed to do the reaction
             # binomial coefficient, number of possibilities to draw k molecules out of n (from one species)
             if k == 1:
                 ret = ret * n
@@ -128,7 +156,7 @@ class Gillespie():
                 ret = ret * (n*(n-1)*(n-2))/6
             else:
                 ret = ret * self.binomial_coefficient(n, k)
-
+        # number of possible molecule combinations leading to a reaction
         return ret
 
     def calc_a(self, reaction):
