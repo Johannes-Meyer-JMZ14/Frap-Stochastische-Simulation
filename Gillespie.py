@@ -404,7 +404,8 @@ def make_output_signal(list_gillespies, output_species_names):
 
     output_signal = []
     for gilles in list_gillespies:
-        output_signal_per_run =[]
+        output_signal_per_run = []
+        times = []
         # for every date in this Gillespie run
         # all quantities in a run are of the same length
         for i in range(len(gilles.quantities[output_species_names[0]])):
@@ -413,95 +414,11 @@ def make_output_signal(list_gillespies, output_species_names):
             #for species in output_species_names:
             #    sum_at_time += gilles.quantities[species][i]
             output_signal_per_run.append(sum_at_timestamp_i)
-        output_signal.append(output_signal_per_run)
+            times.append(gilles.times[i])
+        # append the tuple of (times, molecule amounts) from one simulation run
+        output_signal.append((times, output_signal_per_run))
 
     return output_signal
-
-def divide_time_axis_equidistantly(list_of_times):
-    """Divides a list of numbers pairwise in the middle. Returns a list of tuples of sections."""
-    # only a list for input
-    if not isinstance(list_of_times, list):
-        raise ValueError('The input list has to be a list of times.')
-    # no empty list
-    elif list_of_times == []:
-        raise ValueError('The input list must not be empty.')
-    # only lists with two and more items
-    elif len(list_of_times) == 1:
-        raise ValueError('The input list has to contain more than one entry.')
-    # list items shall be of type integer or float
-    for list_item in list_of_times:
-        if not (isinstance(list_item, int) or isinstance(list_item, float)):
-            raise ValueError('The list items shall be of type integer or float.')
-    
-    time_ranges = []
-    for i, time in enumerate(list_of_times):
-        # if last item in list, there is only one intermediate
-        if i == len(list_of_times)-1:
-            time_ranges.append((old_intermediate, time))
-            break
-        # calculate the next intermediate
-        intermediate = (list_of_times[i+1]+time)/2
-        # if it is the first item, there is only one intermediate
-        if i == 0:
-            time_ranges.append((time, intermediate))
-        # all other time ranges range from intermediate to intermediate
-        else:
-            time_ranges.append((old_intermediate, intermediate))
-        old_intermediate = intermediate
-    return time_ranges
-
-# TODO: Tests schreiben
-def assign_simulation_times_to_time_ranges(time_ranges, gillespies):
-    """Takes a list of gillespie simulations and a list of time intervals and matches the time stamps of each gillespie simulation to an interval."""
-    rows = []
-    times_for_all_gillespie_objects = []
-    # for each gillespie object
-    for i, gilles in enumerate(gillespies):
-        rows.append(gilles)
-        times_for_all_gillespie_objects.append([])
-        # for each interval in the given list
-        for time_range in time_ranges:
-            times_in_time_range = []
-            for time in gilles.times:
-                # check if a time from the gillespie simulation matches the current interval
-                if (time >= time_range[0] and time < time_range[1]) or (time < time_range[0] and time >= time_range[1]):
-                    times_in_time_range.append(time)
-            # add all matched times to the current gillespie objects list
-            times_for_all_gillespie_objects[i].append(times_in_time_range)
-
-    all_times = DataFrame(times_for_all_gillespie_objects, columns=time_ranges, index=rows)
-    return all_times
-# TODO: Mittelwert der Simulationsdaten im Messbereich bestimmen
-# TODO: Tests schreiben
-def arithmetic_means(dataframe):
-    # TODO: Beschreibung ausdenken und einfügen
-    """Beschreibung..."""
-    ret = DataFrame(np.zeros(dataframe.shape), columns=dataframe.columns, index=dataframe.index)
-    for col, ind in (dataframe.columns, dataframe.index):
-        # each entry of 'dataframe' should contain a list of values
-        # calculate the arithmetic mean and save it to the corresponding location in 'ret'
-        mean = np.mean(dataframe[col][ind])
-        ret[col][ind]=mean
-    
-    return ret
-# TODO: Tests schreiben
-def evaluation(df_measured, df_simulated_means):
-    """Evaluates how much a simulations differs from measured data."""
-    iterated_sum = 0
-    absolutes_sum = 0
-    for col, ind in (df_measured.columns, df_measured.index):
-        difference = df_measured[col][ind]-df_simulated_means[col][ind]
-        iterated_sum += difference
-        absolutes_sum += abs(difference)
-    
-    return (iterated_sum, absolutes_sum)
-
-def fitness(parameters):
-    trajectory = simulate(parameters)  # Gillespie.run_n_reactions()
-    # Mittelwerte bilden
-    # Addieren und Normieren (auf feste Anzahl in ROI bspw. 200)
-    quality_of_fitness = evaluation()
-    return quality_of_fitness
 
 # def get_trimming_time(list_gillespies, window_length=10, step_width=None, vct=0.05):
     #"""Scans the Gillespie runs for their variances via shifting window and returns the time when variance change threshold is reached."""
