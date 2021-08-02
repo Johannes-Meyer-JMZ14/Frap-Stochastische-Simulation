@@ -500,10 +500,6 @@ def calc_mean_variance(inp):
 def calc_mean_standard_deviation(inp):
     return np.mean([np.std(date) for date in inp])
 
-# TODO: Variationskoeffizient noch sinnvoll? Wenn ja, schreiben.
-def calc_Variationskoeffizient():
-    pass
-
 
 
 
