@@ -51,7 +51,7 @@ class Simulated_Annealing():
 
 	# objective function
 	def objective_function(self, parameters):
-		constants = {reaction:parameters[i] for i, reaction in enumerate(L_lenser.columns)}
+		constants = {reaction:parameters[i] for i, reaction in enumerate(self.L_lenser.columns)}
 		# simulate one or more Gillespie runs
 		trajectory = Glp.monte_carlo_gillespie(constants, self.L_lenser, self.N_lenser, self.startQuantities_lenser, runs=self.runs_lenser, time_max=self.time_limit_lenser)
 		# list of tuples of gillespie times_list and added_quantities_list for output signal
