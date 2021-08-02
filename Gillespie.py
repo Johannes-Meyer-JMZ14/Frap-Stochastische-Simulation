@@ -170,9 +170,9 @@ class Gillespie():
         if reaction not in self.h:
             raise KeyError("reaction parameter not in dictionary h.")
         if self.rConstants[reaction] < 0:
-            raise ValueError("Reaction constant for" + reaction + "must not be negative.")
+            raise ValueError("Reaction constant for " + reaction + " must not be negative.")
         if self.h[reaction] < 0:
-            raise ValueError("h value for" + reaction + "must not be negative.")
+            raise ValueError("h value for " + reaction + " must not be negative.")
         
         # Reaction possibilities times reaction constants
         return self.rConstants[reaction]*self.h[reaction]
