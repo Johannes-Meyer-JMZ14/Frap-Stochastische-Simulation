@@ -87,6 +87,8 @@ class Gillespie():
         # Gillespie Step 3
         # Using the tau and mu values obtained in step 2, increase t by tau and adjust the molecular population levels to reflect the occurrence of one R_mu reaction.
         # pick a reaction random
+        # TODO: print löschen
+        # print('> a=%s, a0=%s' % (self.a, self.a0))
         t = process_time()
         next_reaction = self.choose_next_reaction()
         elapsed_time = process_time() - t
@@ -269,7 +271,14 @@ class Gillespie():
 
         # check if reaction is a key of the input stoichiometric matrices
         if not reaction in self.L.keys():
-            raise KeyError("Reaction should be a key for stoichiometric matrices, respectively the name of the corresponding reaction.")
+            # TODO: print löschen
+            print(reaction + " of type " + str(type(reaction)))
+            print('a = {}'.format(self.a))
+            print('a0= %f' % (self.a0))
+            print('h = {}' % (self.h))
+            print({key:self.quantities[key][-1] for key in self.quantities.keys()})
+            print(self.times)
+            raise KeyError("Reaction should be a key for stoichiometric matrices (respectively the name of the corresponding reaction), not "+str(reaction)+" of type "+str(type(reaction))+".")
         # add the changed number of analytes, due to reaction mu, to quantities
         for species in self.quantities:
             # add the value from N to the current number of molecules of one species
