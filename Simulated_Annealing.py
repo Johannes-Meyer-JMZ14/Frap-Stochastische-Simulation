@@ -9,6 +9,7 @@ from matplotlib import pyplot
 import pandas as pd
 import Fitting as Fit
 import Gillespie as Glp
+import os
 
 class Simulated_Annealing():
 
@@ -40,7 +41,7 @@ class Simulated_Annealing():
 		self.runs_lenser = 2
 		# colours for plotting
 		self.colours_lenser = {"x":"red", "y":"forestgreen", "z":"lightblue"}
-		# component of the measured FRAP data for fitting
+		# component of the measured FRAP data to be fittet to
 		self.pml_component = "PML I WT"
 
 		self.measurement = pd.read_csv("./../Daten/FRAP_comparison_all_new_AssemblyDynamicsOfPMLNuclearBodiesInLivingCells_cleaned.csv", index_col="time[s]")
@@ -51,11 +52,15 @@ class Simulated_Annealing():
 
 	# objective function
 	def objective_function(self, parameters):
+		if len(parameters) != len(self.L_lenser.columns):
+			raise IndexError('The number of parameters has to equal the number of reactions in the given reaction network.')
 		constants = {reaction:parameters[i] for i, reaction in enumerate(self.L_lenser.columns)}
+		# TODO: delete print
+		# print(constants)
 		# simulate one or more Gillespie runs
-		trajectory = Glp.monte_carlo_gillespie(constants, self.L_lenser, self.N_lenser, self.startQuantities_lenser, runs=self.runs_lenser, time_max=self.time_limit_lenser)
+		trajectories = Glp.monte_carlo_gillespie(constants, self.L_lenser, self.N_lenser, self.startQuantities_lenser, runs=self.runs_lenser, time_max=self.time_limit_lenser)
 		# list of tuples of gillespie times_list and added_quantities_list for output signal
-		list_of_output_data = Glp.make_output_signal(trajectory, self.species_lenser)
+		list_of_output_data = Glp.make_output_signal(trajectories, self.species_lenser)
 		# DataFrame of averaged gillespie data per time interval, time intervals as index
 		assigned_simulation_data = Fit.assign_simulation_times_to_time_ranges_average(self.time_intervals,self.measured_times,list_of_output_data)
 		# normalize the simulation data
@@ -65,12 +70,12 @@ class Simulated_Annealing():
 		differences = Fit.calculate_differences(self.measurement[self.pml_component], normalized_assigned_simulation_data)
 		# create a quality score by adding up the differences per individual run and averaging the sums
 		quality_of_fitness = mean(differences.sum())
-		self.track_data.append([trajectory, list_of_output_data, normalized_assigned_simulation_data, differences, quality_of_fitness])
+		self.track_data.append([trajectories, list_of_output_data, normalized_assigned_simulation_data, differences, quality_of_fitness])
 		
 		return quality_of_fitness
 
 	# simulated annealing algorithm
-	def simulated_annealing(objective, bounds, n_iterations, step_size, temp):
+	def simulated_annealing(self, objective, bounds, n_iterations, step_size, temp):
 		# generate an initial solution
 		best = bounds[:, 0] + rand(len(bounds)) * (bounds[:, 1] - bounds[:, 0])
 		# evaluate the initial solution
@@ -82,10 +87,15 @@ class Simulated_Annealing():
 		for i in range(n_iterations):
 			# get another solution
 			candidate = current + randn(len(bounds)) * step_size
-			# the rate constant values of the candidate must not be negative
-			for c in candidate:
-				if c < 0:
-					c = 0
+			# the rate constant values of the candidate shall be between 0 (do not take place) and 1 (fully take place)
+			for candi in range(len(candidate)):
+				if candidate[candi] < 0:
+					candidate[candi] = 0.0
+				if candidate[candi] > 1:
+					candidate[candi] = 1.0
+			if sum(candidate) == 0:
+				print("The combination of the input parameters has resulted in the overall reactivity of the system a0 being 0. The simulation run %d was therefore skipped." % i)
+				continue
 			# evaluate candidate solution
 			candidate_eval = objective(candidate)
 			# check, if the candidate is better than the current best
@@ -95,7 +105,9 @@ class Simulated_Annealing():
 				# keep track of scores
 				scores.append(best_eval)
 				# report progress
-				print('>%d f(%s) = %.5f' % (i, best, best_eval))
+				print('>%d eval(%s) = %.5f' % (i, best, best_eval))
+			else:
+				print('>%d' % i)
 			# difference between candidate and current point evaluation
 			diff = candidate_eval - current_eval
 			# calculate temperature for current epoch
@@ -108,23 +120,27 @@ class Simulated_Annealing():
 				current, current_eval = candidate, candidate_eval
 		return [best, best_eval, scores]
 
-	def run_simulated_annealing(self):
-		# seed the pseudorandom number generator
-		# seed(1)
-		# define range for input
-		bounds = asarray([[0.0, 1.0]]*len(self.L_lenser.columns))
-		# number of annealing iterations
-		n_iterations = 1000
-		# maximum step size
-		step_size = 0.5
-		# initial temperature
-		temperature = 50
-		# perform the simulated annealing search
-		best, score, scores = self.simulated_annealing(self.objective_function, bounds, n_iterations, step_size, temperature)
-		print('Done!')
-		print('f(%s) = %f' % (best, score))
-		# line plot of best scores
-		pyplot.plot(scores, '.-')
-		pyplot.xlabel('Improvement Number')
-		pyplot.ylabel('Evaluation f(x)')
-		pyplot.show()
+def run_simulated_annealing():
+	# seed the pseudorandom number generator
+	# seed(1)
+	# object
+	obj = Simulated_Annealing()
+	# define range for input
+	bounds = asarray([[0.0, 1.0]]*len(obj.L_lenser.columns))
+	# number of annealing iterations
+	n_iterations = 100
+	# maximum step size
+	step_size = 0.1
+	# initial temperature
+	temperature = 50
+	# perform the simulated annealing search
+	best, score, scores = obj.simulated_annealing(obj.objective_function, bounds, n_iterations, step_size, temperature)
+	print('Done!')
+	print('f(%s) = %f' % (best, score))
+	# line plot of best scores
+	pyplot.plot(scores, '.-')
+	pyplot.xlabel('Improvement Number')
+	pyplot.ylabel('Evaluation objective(c)')
+	pyplot.show()
+
+	return obj
