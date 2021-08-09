@@ -131,6 +131,7 @@ dmypy.json
 
 # Temporary files
 temp_*
+*_pickle_binary
 
 # LaTeX files
 *.aux
