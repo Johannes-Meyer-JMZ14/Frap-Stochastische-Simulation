@@ -28,9 +28,11 @@ class Gillespie():
         # get all reactants that are actually involved in reaction "reaction"
         self.reactants = {reaction:self.get_reactants(reaction) for reaction in self.L}  # type is dictionary of dictionaries 
 
-        self.h_counter = [0,[]]
-        self.a_counter = [0,[]]
-        self.other_counter = {"a0":[0,[]],"next_reaction":[0,[]],"adv_time":[0,[]],"mol_change":[0,[]]}
+        self.runtime_analysis = False
+        if self.runtime_analysis:
+            self.h_counter = [0,[]]
+            self.a_counter = [0,[]]
+            self.other_counter = {"a0":[0,[]],"next_reaction":[0,[]],"adv_time":[0,[]],"mol_change":[0,[]]}
 
     def run_time_sec(self, tmax):
         """Run single Gillespie steps until tmax is reached."""
@@ -44,8 +46,12 @@ class Gillespie():
 
         self.tmax = tmax
 
-        while self.times[-1] < tmax:
-            self.run_single_step()
+        if self.runtime_analysis:
+            while self.times[-1] < tmax:
+                self.run_single_step_runtime_analysis()
+        else:
+            while self.times[-1] < tmax:
+                self.run_single_step()
 
     def run_n_reactions(self, nreactions):
         """Run single Gillespie steps until n reactions are computed."""
@@ -57,10 +63,36 @@ class Gillespie():
         elif nreactions < 0:
             raise ValueError("The reaction limit could not be negative!")
 
-        for _ in range(nreactions):
-            self.run_single_step()
+        if self.runtime_analysis:
+            for _ in range(nreactions):
+                self.run_single_step_runtime_analysis()
+        else:
+            for _ in range(nreactions):
+                self.run_single_step()
     
     def run_single_step(self):
+        """Execute the Gillespie algorithm as described in "Exact Stochastic Simulation of Coupled Chemical Reactions" by Daniel T. Gillespie in 1977."""
+
+        # Gillespie Step 1
+        # Calculate and store the M quantities a1 = h1c1,..., aM = hMcM for the currnt molecular population numbers, where h_nu is that function of X1,...,XN defined in (15).
+        for reaction in self.L.keys():  # maybe "in self.L" would be slightly faster, but is less readable
+            self.h[reaction] = self.calc_h(reaction)
+            self.a[reaction] = self.calc_a(reaction)
+        self.a0 = self.calc_a0()
+        # Gillespie Step 2
+        # Generate two random numbers r1 and r2 using the unit-interval uniform random number generator, and calculate tau and mu according to (21a) and (21b).
+        # Gillespie Step 3
+        # Using the tau and mu values obtained in step 2, increase t by tau and adjust the molecular population levels to reflect the occurrence of one R_mu reaction.
+        # pick a reaction random
+        # TODO: print löschen
+        # print('> a=%s, a0=%s' % (self.a, self.a0))
+        next_reaction = self.choose_next_reaction()
+        # advance time random
+        self.advance_time()
+        # alter molecule amounts
+        self.trace_molecule_changes(next_reaction)
+
+    def run_single_step_runtime_analysis(self):
         """Execute the Gillespie algorithm as described in "Exact Stochastic Simulation of Coupled Chemical Reactions" by Daniel T. Gillespie in 1977."""
 
         # Gillespie Step 1
